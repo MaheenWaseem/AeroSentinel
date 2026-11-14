@@ -1,742 +1,410 @@
-\# AeroSentinel
+# AeroSentinel
 
-\### Aircraft Engine Remaining Useful Life Prediction
+### Aircraft Engine Remaining Useful Life Prediction
 
-\*\*End-to-End Machine Learning Engineering | Predictive Maintenance | Deep Learning | Model Serving\*\*
+Machine Learning Engineering | Predictive Maintenance | Deep Learning | Model Deployment
 
+AeroSentinel is an end-to-end machine learning project developed to estimate the Remaining Useful Life (RUL) of aircraft engines using NASA's C-MAPSS FD001 turbofan degradation dataset.
 
+The project covers data preprocessing, experimental design, classical machine learning benchmarks, temporal feature engineering, deep learning, model evaluation, explainability, automated testing, and containerized inference.
 
-AeroSentinel is an end-to-end machine learning engineering project focused on estimating aircraft engine Remaining Useful Life (RUL) using NASA's C-MAPSS FD001 turbofan degradation dataset.
+The final system uses a cycle-aware Long Short-Term Memory (LSTM) model implemented in PyTorch. A FastAPI backend handles prediction requests, while Docker provides a consistent environment for running the inference service.
 
+![AeroSentinel System Architecture](docs/assets/aerosentinel_architecture.png)
 
+## Performance Highlights
 
-The project spans the complete ML lifecycle: data validation, leakage-aware experimental design, classical regression benchmarking, temporal feature engineering, recurrent neural network development, model evaluation, explainability, artifact persistence, automated testing, and containerized inference.
-
-
-
-The final system uses a \*\*cycle-aware Long Short-Term Memory (LSTM)\*\* architecture deployed through a \*\*FastAPI inference service\*\*, with persisted preprocessing artifacts and a reproducible Docker runtime.
-
-
-
-\## Performance Highlights
-
-
-
-| Metric | Verified Result |
-
+| Metric | Result |
 |---|---:|
+| Official FD001 Test MAE | 16.75 cycles |
+| Official FD001 Test RMSE | 23.28 cycles |
+| Development Validation MAE | 17.46 cycles |
+| Development Validation RMSE | 25.05 cycles |
+| Official Test Engines | 100 |
+| Automated Tests | 30 passed |
+| Inference Window | 30 cycles |
+| Selected Sensors | 14 |
 
-| Official FD001 test MAE | \*\*16.75 cycles\*\* |
+The final model was evaluated on the official FD001 test set using the established inference configuration. Development validation and official test results are reported separately.
 
-| Official FD001 test RMSE | \*\*23.28 cycles\*\* |
+## 1. Problem Definition
 
-| Development-validation MAE | 17.46 cycles |
+Remaining Useful Life prediction estimates the number of operational cycles remaining before an engine reaches the end of its useful operating life.
 
-| Development-validation RMSE | 25.05 cycles |
+The NASA C-MAPSS FD001 dataset contains simulated engine degradation trajectories with operational cycles, operating conditions, and sensor measurements.
 
-| Official test engines | 100 |
+The main challenges addressed in this project include:
 
-| Automated tests | \*\*30 passed\*\* |
+- Modeling nonlinear degradation patterns from sensor measurements.
+- Capturing temporal dependencies across operating cycles.
+- Preventing data leakage between individual engine trajectories.
+- Comparing classical machine learning models with sequence-based neural networks.
+- Evaluating model generalization on unseen engines.
+- Maintaining consistent preprocessing between training and inference.
 
-| Inference sequence length | 30 cycles |
+AeroSentinel addresses these challenges through a structured experimental workflow and a separate inference service.
 
-| Selected sensor features | 14 |
+## 2. System Architecture
 
+The project consists of two main components.
 
+### Offline Model Development
 
-The final model was evaluated on the official FD001 test set using a locked inference configuration. Development comparisons and official test results are reported separately to preserve their evaluation context.
+The development pipeline includes data loading, validation, engine-aware splitting, feature engineering, model training, comparative evaluation, and artifact persistence.
 
+Classical regression models were evaluated alongside LSTM architectures to compare predictive performance and assess the value of temporal modeling.
 
+The selected model and preprocessing artifacts were saved for subsequent inference.
 
-\---
+### Online Inference
 
+The inference pipeline processes incoming API requests through the following stages:
 
+1. Request validation using Pydantic.
+2. Engine history and sensor validation.
+3. Chronological sorting of observations.
+4. Application of the saved sensor scaler.
+5. Extraction of the latest 30-cycle window.
+6. Transformation of the ending-cycle feature.
+7. Tensor construction and LSTM inference.
+8. Generation of the RUL prediction response.
 
-\## 1. Problem Definition
+The FastAPI application initializes the inference service during startup. Docker packages the application, its dependencies, and the required model artifacts.
 
+## 3. Data Processing and Experimental Protocol
 
+### Engine-Aware Dataset Partitioning
 
-Remaining Useful Life prediction aims to estimate how many operational cycles remain before an engine reaches its end-of-life condition.
+The development dataset was divided at the engine level rather than randomly splitting individual observations.
 
+This prevents measurements from the same engine from appearing in both the training and validation partitions.
 
+The development protocol used:
 
-The FD001 dataset consists of multivariate degradation trajectories recorded across aircraft engine operating cycles.
+- 80 engines for development training.
+- 20 engines for development validation.
+- 100 development engines for final model training.
+- 100 engines in the official FD001 test evaluation.
 
+The official test set was evaluated separately from the model development and selection process.
 
+### RUL Target Construction
 
-The project addresses several technical challenges:
+RUL targets were calculated using the remaining number of operating cycles in each engine trajectory.
 
+The project used uncapped RUL targets, preserving the full target range rather than imposing a maximum RUL threshold.
 
+Engine identifiers and cycle ordering were maintained throughout preprocessing and sequence construction.
 
-\- Modeling nonlinear degradation from multivariate sensor observations.
+### Sensor Selection
 
-\- Capturing sequential dependencies across engine operating cycles.
-
-\- Preventing data leakage between engine trajectories.
-
-\- Establishing comparable classical ML and neural-network benchmarks.
-
-\- Evaluating generalization across unseen engines.
-
-\- Maintaining consistency between model development and deployed inference.
-
-
-
-Rather than treating prediction as an isolated notebook experiment, AeroSentinel separates offline experimentation from production-oriented inference engineering.
-
-
-
-\## 2. System Architecture
-
-
-
-AeroSentinel is organized into two interconnected workflows.
-
-
-
-\*\*Offline Model Development\*\*
-
-
-
-Data ingestion → Engine-aware splitting → Feature engineering → Classical ML benchmarking → Sequence modeling → Evaluation → Final artifact persistence
-
-
-
-\*\*Online Inference\*\*
-
-
-
-HTTP request → Pydantic validation → Engine-history validation → Saved sensor scaling → Sequence construction → Saved cycle scaling → Cycle-aware LSTM → RUL response
-
-
-
-The final inference environment is packaged using Docker, with the model initialized during FastAPI application startup.
-
-
-
-\## 3. Data Processing and Experimental Protocol
-
-
-
-\### Engine-Aware Dataset Partitioning
-
-
-
-The development protocol separates engines rather than randomly distributing temporally correlated observations across training and validation sets.
-
-
-
-The established development split contains:
-
-
-
-\- \*\*80 development-training engines\*\*
-
-\- \*\*20 development-validation engines\*\*
-
-\- \*\*100 engines in the final development training protocol\*\*
-
-\- \*\*100 engines in the official test evaluation\*\*
-
-
-
-This design prevents engine trajectories from being shared across development-training and validation partitions.
-
-
-
-\### RUL Target Construction
-
-
-
-RUL targets are constructed from engine lifecycle information using the project's established uncapped RUL formulation.
-
-
-
-The data-processing workflow preserves engine identity and operational cycle ordering for subsequent temporal modeling.
-
-
-
-\### Sensor Selection
-
-
-
-The locked inference configuration uses 14 sensors:
-
-
+The final model uses 14 selected sensor measurements:
 
 `2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21`
 
+Each inference input contains the latest 30 observations for these sensors.
 
+The resulting sensor sequence has 30 time steps and 14 features. A standardized ending-cycle value is provided as an additional model input.
 
-The final 30-cycle sensor sequence has dimensions:
+## 4. Model Development
 
+### Classical Machine Learning Benchmarks
 
+Classical regression experiments were conducted to establish reference performance before selecting the final sequence-based model.
 
-\*\*30 time steps × 14 sensor features\*\*
+The development workflow included:
 
+- Classical regression model comparison.
+- Temporal feature engineering and refinement.
+- Engine-level prediction analysis.
+- Error analysis across different RUL ranges.
+- Feature and sensor importance analysis.
+- Random Forest and LSTM performance comparison.
 
+The corresponding results, evaluation outputs, and diagnostic figures are retained in the repository.
 
-The model additionally receives a standardized ending-cycle feature.
+### Cycle-Aware LSTM
 
+The final architecture uses an LSTM to process multivariate sensor sequences together with a separate operational-cycle feature.
 
+The sequence input represents recent sensor behavior, while the standardized ending-cycle feature provides additional information about the engine's operational age.
 
-\## 4. Model Development
-
-
-
-\### Classical Machine Learning Benchmarks
-
-
-
-Classical regression experiments establish comparative reference points for the temporal modeling approach.
-
-
-
-The repository includes evaluation artifacts for:
-
-
-
-\- Classical model benchmarking.
-
-\- Temporal feature engineering and refinement.
-
-\- Engine-level prediction diagnostics.
-
-\- Error analysis across RUL regions.
-
-\- Feature-family and sensor importance.
-
-\- Random Forest versus LSTM comparisons.
-
-
-
-These outputs preserve the experimental evidence behind the final modeling decisions.
-
-
-
-\### Cycle-Aware LSTM
-
-
-
-The cycle-aware LSTM combines a multivariate sensor sequence with an additional engine-cycle feature.
-
-
-
-\*\*Model inputs\*\*
-
-
-
-| Component | Representation |
-
+| Component | Configuration |
 |---|---|
+| Sequence Length | 30 cycles |
+| Sensor Features | 14 |
+| Sensor Tensor Shape | `(1, 30, 14)` |
+| Cycle Tensor Shape | `(1, 1)` |
+| Additional Feature | Standardized ending cycle |
+| Inference Device | CPU |
+| Final Training Protocol | 100 development engines |
 
-| Sensor history | Latest 30 observations |
+The final model uses the saved preprocessing transformations during inference. No scalers are refitted when processing a prediction request.
 
-| Sensor features | 14 canonical sensors |
+## 5. Comparative Model Evaluation
 
-| Sensor tensor | `(1, 30, 14)` |
+The following results were obtained during development validation.
 
-| Cycle tensor | `(1, 1)` |
-
-| Cycle representation | Standardized ending cycle |
-
-| Inference device | CPU |
-
-
-
-The temporal branch processes sequential sensor behavior, while the cycle feature provides explicit operational-age information.
-
-
-
-The final inference pipeline reuses the saved transformations rather than fitting new scalers during prediction.
-
-
-
-\## 5. Comparative Model Evaluation
-
-
-
-The following results were obtained under the development-validation comparison protocol.
-
-
-
-| Model | MAE ↓ | RMSE ↓ |
-
+| Model | MAE | RMSE |
 |---|---:|---:|
-
-| \*\*Cycle-Aware LSTM\*\* | \*\*17.46\*\* | \*\*25.05\*\* |
-
+| Cycle-Aware LSTM | 17.46 | 25.05 |
 | Sensor-Only LSTM | 18.01 | 26.67 |
-
 | Random Forest (Depth 12) | 21.36 | 29.39 |
 
+The cycle-aware LSTM achieved:
 
+- 21.36% lower MAE than the Random Forest benchmark.
+- 14.78% lower RMSE than the Random Forest benchmark.
+- 3.03% lower MAE than the sensor-only LSTM.
 
-The cycle-aware LSTM achieved approximately:
+These improvements were measured on the development validation data and should not be interpreted as official test comparisons between all three models.
 
+### Lifecycle-Specific Error Analysis
 
+Performance was also examined across different remaining-life ranges.
 
-\- \*\*21.36% lower MAE\*\* than the Random Forest benchmark.
-
-\- \*\*14.78% lower RMSE\*\* than the Random Forest benchmark.
-
-\- \*\*3.03% lower MAE\*\* than the sensor-only LSTM.
-
-
-
-These relative improvements refer to the development-validation results, not to a separate official-test comparison of all three models.
-
-
-
-\### Lifecycle-Specific Error Analysis
-
-
-
-For the cycle-aware LSTM, the development evaluation reported:
-
-
-
-| Evaluation slice | MAE |
-
+| RUL Region | Cycle-Aware LSTM MAE |
 |---|---:|
-
-| Near failure | 4.17 |
-
+| Near Failure | 4.17 |
 | Medium RUL | 12.90 |
-
 | High RUL | 27.41 |
 
+The model achieved lower prediction errors near failure, while errors increased substantially in the high-RUL region.
 
+The high-RUL evaluation also produced a mean signed error of approximately -18.01 cycles, indicating a tendency toward underprediction in that region.
 
-The model performed better near failure than in the high-RUL region, where prediction errors were substantially larger.
+These results show why aggregate evaluation metrics should be considered alongside lifecycle-specific error analysis.
 
+## 6. Official NASA Test Evaluation
 
-
-The high-RUL region also showed a mean signed error of approximately \*\*-18.01 cycles\*\*, indicating a tendency toward underprediction in that evaluation slice.
-
-
-
-This distinction matters because aggregate metrics alone can conceal operationally relevant differences across the degradation lifecycle.
-
-
-
-\## 6. Official NASA Test Evaluation
-
-
-
-Following the locked development methodology, the final cycle-aware LSTM was evaluated on the official FD001 test set.
-
-
+The locked cycle-aware LSTM was evaluated on the official FD001 test set after completion of the development process.
 
 | Metric | Result |
-
 |---|---:|
+| Test Engines | 100 |
+| MAE | 16.7479 cycles |
+| RMSE | 23.2781 cycles |
+| Median Absolute Error | 10.6517 cycles |
+| 95th Percentile Absolute Error | 48.9542 cycles |
+| Mean Signed Error | +12.6185 cycles |
 
-| Test engines | 100 |
+The positive mean signed error indicates that the model tended to overpredict RUL on the official test set.
 
-| MAE | \*\*16.7479 cycles\*\* |
+These values represent the recorded final evaluation results. They were not obtained through additional test-set model selection.
 
-| RMSE | \*\*23.2781 cycles\*\* |
+The corresponding metrics and engine-level predictions are available in the `outputs/` directory.
 
-| Median absolute error | 10.6517 cycles |
+## 7. Explainability and Error Diagnostics
 
-| 95th percentile absolute error | 48.9542 cycles |
+The project includes additional analysis to examine model behavior beyond overall MAE and RMSE.
 
-| Mean signed error | +12.6185 cycles |
+The evaluation workflow covers:
 
+- Sensor importance analysis.
+- Lifecycle-specific sensor importance.
+- Random Forest feature-family importance.
+- Permutation importance.
+- Training and validation histories.
+- Engine-level prediction diagnostics.
+- Error analysis across RUL ranges.
 
+These analyses help identify which input features influence model behavior and where prediction errors are more pronounced.
 
-The positive overall mean signed error indicates a tendency toward RUL overprediction on the official test set.
+Feature importance results are treated as model diagnostics rather than direct causal explanations of physical engine degradation.
 
+## 8. Production Inference Engineering
 
+A reusable `RULInferenceService` handles model loading, input preprocessing, validation, and prediction.
 
-These results represent the final recorded evaluation, not an additional model-selection experiment.
+This separates the machine learning logic from the FastAPI request-handling layer.
 
+### Saved Model Artifacts
 
-
-The repository retains the relevant prediction and metric artifacts under `outputs/`.
-
-
-
-\## 7. Explainability and Error Diagnostics
-
-
-
-The experimental workflow includes model diagnostics designed to examine more than aggregate prediction error.
-
-
-
-Available analysis artifacts include:
-
-
-
-\- Sensor importance estimates.
-
-\- Lifecycle-oriented sensor importance.
-
-\- Random Forest feature-family importance.
-
-\- Permutation-based importance analysis.
-
-\- Training and validation histories.
-
-\- Engine-level error comparisons.
-
-\- RUL-region-specific diagnostics.
-
-
-
-These analyses support inspection of model behavior and evaluation limitations.
-
-
-
-They should be interpreted as model-level diagnostic evidence rather than causal explanations of engine degradation.
-
-
-
-\## 8. Production Inference Engineering
-
-
-
-The prediction system is implemented through a reusable `RULInferenceService`, separating preprocessing and model execution from the HTTP transport layer.
-
-
-
-\### Persisted Artifacts
-
-
-
-The final inference service loads:
-
-
+The inference service loads three finalized artifacts:
 
 ```text
-
-models/saved\_artifacts/
-
-├── fd001\_final\_cycle\_aware\_lstm.pt
-
-├── fd001\_final\_cycle\_feature\_scaler.joblib
-
-└── fd001\_final\_sequence\_sensor\_scaler.joblib
-
+models/saved_artifacts/
+    fd001_final_cycle_aware_lstm.pt
+    fd001_final_cycle_feature_scaler.joblib
+    fd001_final_sequence_sensor_scaler.joblib
 ```
 
+The checkpoint contains the trained model parameters and configuration metadata. The saved scalers preserve the preprocessing transformations used by the final model.
 
+### Inference Validation
 
-\### Inference Validation
+Before generating a prediction, the service validates:
 
+1. Required engine-history columns.
+2. Numeric and finite sensor values.
+3. Single-engine request consistency.
+4. Positive engine identifiers and cycle values.
+5. Duplicate cycle values.
+6. Minimum 30-observation requirement.
+7. Model checkpoint configuration.
+8. Sensor order and preprocessing artifact compatibility.
 
+After validation, observations are sorted by cycle and the latest 30-cycle window is selected.
 
-Before prediction, the service validates:
+The saved preprocessing transformations are applied before constructing the PyTorch tensors and executing the LSTM.
 
+The inference service initializes the model and scalers during FastAPI startup, avoiding repeated artifact loading for each request.
 
+## 9. REST API
 
-1\. Required engine-history columns.
+The inference API is implemented using FastAPI, Pydantic, and Uvicorn.
 
-2\. Numeric and finite sensor values.
-
-3\. Single-engine request consistency.
-
-4\. Positive engine IDs and cycle numbers.
-
-5\. Duplicate cycle detection.
-
-6\. Minimum 30-observation requirement.
-
-7\. Model checkpoint metadata.
-
-8\. Sensor feature order and scaler compatibility.
-
-
-
-The service sorts observations by cycle, selects the latest 30-cycle sequence, applies the persisted transformations, and executes the locked LSTM using PyTorch.
-
-
-
-Model and preprocessing artifacts are initialized during application startup rather than loaded independently for every prediction request.
-
-
-
-\## 9. REST API
-
-
-
-AeroSentinel provides a REST interface built using FastAPI and Pydantic.
-
-
-
-| Endpoint | Method | Responsibility |
-
+| Endpoint | Method | Description |
 |---|---|---|
+| `/health` | GET | Returns application health status |
+| `/predict` | POST | Generates an engine RUL prediction |
+| `/docs` | GET | Provides interactive API documentation |
 
-| `/health` | GET | Application health response |
+### Prediction Request
 
-| `/predict` | POST | Engine-level RUL inference |
+The prediction endpoint accepts an engine identifier and a sequence of observations containing cycle information and the 14 required sensor measurements.
 
-| `/docs` | GET | Interactive OpenAPI documentation |
+At least 30 valid observations are required.
 
+### Prediction Response
 
+A successful request returns:
 
-\### Prediction Contract
+- `engine_id`
+- `last_observed_cycle`
+- `predicted_rul`
 
+The API distinguishes schema validation failures, domain-specific input errors, and unexpected inference failures through appropriate HTTP responses.
 
+## 10. Automated Testing
 
-The prediction endpoint accepts an engine identifier and a history of observations containing cycle values and all 14 required sensor measurements.
+The project uses pytest and FastAPI TestClient for automated validation and integration testing.
 
+The test suite covers:
 
+- Engine-history validation.
+- Sensor and cycle constraints.
+- Missing or invalid observations.
+- Minimum sequence requirements.
+- Model and scaler loading.
+- Artifact compatibility checks.
+- Inference service initialization.
+- Successful prediction responses.
+- API request validation.
+- HTTP error handling.
 
-A successful prediction returns:
-
-
-
-\- `engine\_id`
-
-\- `last\_observed\_cycle`
-
-\- `predicted\_rul`
-
-
-
-The application distinguishes request-schema failures, inference-domain validation errors, and unexpected internal failures.
-
-
-
-\## 10. Automated Testing
-
-
-
-The test suite includes unit and API integration tests covering:
-
-
-
-\- Engine-history validation.
-
-\- Sensor and cycle constraints.
-
-\- Invalid and insufficient observations.
-
-\- Model and scaler loading.
-
-\- Saved artifact compatibility.
-
-\- Inference-service initialization.
-
-\- Valid prediction responses.
-
-\- FastAPI request and response behavior.
-
-\- HTTP error handling.
-
-
-
-\*\*Latest verified test result:\*\*
-
-
+### Verified Test Result
 
 ```text
-
 30 passed, 4 warnings in 4.75s
-
 ```
 
-
-
-Run the complete suite:
-
-
+Run the test suite with:
 
 ```bash
-
 uv run python -m pytest tests/ -q
-
 ```
 
+The tests passed with non-failing warnings related to dependency compatibility and tensor construction.
 
+These include a scikit-learn version mismatch between saved artifacts and the current runtime, a NumPy array-writability warning, and a Starlette TestClient deprecation warning.
 
-The passing suite includes non-failing dependency and runtime warnings. These include a scikit-learn artifact-version mismatch, a NumPy/PyTorch array-writability warning, and a Starlette TestClient deprecation warning.
+The saved scikit-learn artifacts should be checked against their original dependency versions when reproducing inference in another environment.
 
+## 11. Docker Containerization
 
+The inference backend is packaged as a Docker image containing the Python runtime, application source code, dependencies, and final inference artifacts.
 
-The scikit-learn version mismatch should be resolved or verified against the artifact-generation environment before claiming strict cross-environment model reproducibility.
+The container environment uses:
 
+- Python 3.12.
+- FastAPI and Uvicorn.
+- CPU-based PyTorch inference.
+- NumPy, pandas, and scikit-learn.
+- uv for dependency management.
+- Saved model and preprocessing artifacts.
 
-
-\## 11. Docker Containerization
-
-
-
-AeroSentinel's inference backend is packaged into a Linux Docker image.
-
-
-
-\*\*Runtime components\*\*
-
-
-
-\- Python 3.12
-
-\- FastAPI and Uvicorn
-
-\- PyTorch CPU inference
-
-\- NumPy, pandas, and scikit-learn
-
-\- Dependency resolution using uv
-
-\- Final model and preprocessing artifacts
-
-
-
-\### Build
-
-
+### Build the Docker Image
 
 From the project root:
 
-
-
 ```bash
-
 docker build -t nasa-cmapss-rul-api .
-
 ```
 
-
-
-\### Run
-
-
+### Run the Container
 
 ```bash
-
 docker run --rm -p 127.0.0.1:8000:8000 nasa-cmapss-rul-api
-
 ```
 
-
-
-\### Verify
-
-
+### Verify the API
 
 ```bash
-
 curl http://localhost:8000/health
-
 ```
 
-
-
-Open the interactive documentation:
-
-
+Interactive API documentation is available at:
 
 `http://localhost:8000/docs`
 
+The local Docker deployment has been verified through successful container startup, health checks, prediction requests, and container recreation.
 
-
-The local Docker runtime has been verified through successful startup, health checks, inference requests, and container recreation.
-
-
-
-\## 12. Repository Structure
-
-
+## 12. Repository Structure
 
 ```text
-
 AeroSentinel/
-
-├── src/
-
-│   ├── api/             # REST API and schemas
-
-│   ├── data/            # Loading and partitioning
-
-│   ├── modeling/        # Model and sequence components
-
-│   ├── evaluation/      # Performance and diagnostics
-
-│   ├── inference/       # Production inference service
-
-│   └── config.py
-
-├── models/
-
-│   └── saved\_artifacts/
-
-├── tests/
-
-├── outputs/
-
-├── notebooks/
-
-├── Dockerfile
-
-├── .dockerignore
-
-├── pyproject.toml
-
-├── uv.lock
-
-└── README.md
-
+    src/
+        api/
+        data/
+        modeling/
+        evaluation/
+        inference/
+        config.py
+    models/
+        saved_artifacts/
+    tests/
+    outputs/
+    notebooks/
+    docs/
+        assets/
+            aerosentinel_architecture.png
+    Dockerfile
+    .dockerignore
+    pyproject.toml
+    uv.lock
+    README.md
 ```
 
+The repository contains both experimental outputs and the artifacts used by the final inference system.
 
+The `outputs/` directory preserves model comparisons, evaluation metrics, predictions, and diagnostic visualizations.
 
-The repository preserves experimental artifacts alongside the locked inference implementation.
+The final checkpoint and scalers are stored separately from the experimental analysis results.
 
+## 13. Reproducibility and Project Scope
 
+Project dependencies are defined in `pyproject.toml`, with resolved versions recorded in `uv.lock`.
 
-\## 13. Reproducibility and Scope
+Docker provides a consistent Linux environment for running the inference application independently of the original Windows development setup.
 
+The project preserves evaluation outputs and final inference artifacts to support inspection of the model development process.
 
+AeroSentinel is an engineering demonstration based on the NASA C-MAPSS FD001 benchmark. It is not intended as a certified aircraft maintenance or operational decision-making system.
 
-The project uses `pyproject.toml` and `uv.lock` for dependency management and includes Docker configuration for reproducing the inference environment.
-
-
-
-The repository contains historical development outputs and the artifacts required by the finalized model. Experiment artifacts and production inference artifacts serve different purposes and should not be treated interchangeably.
-
-
-
-The deployment is an engineering demonstration for the C-MAPSS FD001 benchmark. It is not an operational aircraft maintenance or safety certification system.
-
-
-
-\## 14. Technology Stack
-
-
+## 14. Technology Stack
 
 | Area | Technologies |
-
 |---|---|
-
-| Language | Python |
-
-| Machine Learning | PyTorch, scikit-learn |
-
-| Data Processing | NumPy, pandas |
-
-| API | FastAPI, Pydantic, Uvicorn |
-
+| Programming | Python |
+| Machine Learning | PyTorch, Scikit-learn |
+| Data Processing | NumPy, Pandas |
+| Backend | FastAPI, Pydantic, Uvicorn |
 | Testing | pytest, HTTPX |
-
-| Dependencies | uv |
-
+| Dependency Management | uv |
 | Containerization | Docker |
-
 | Version Control | Git, GitHub |
 
+---
 
-
-\---
-
-
-
-\*\*AeroSentinel — From engine degradation modeling to reproducible ML inference.\*\*
-
-
-
+AeroSentinel is a complete machine learning development and inference project combining experimental evaluation, temporal modeling, automated validation, and containerized model serving.
