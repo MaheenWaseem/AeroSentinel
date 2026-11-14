@@ -1,0 +1,2 @@
+model,engine_count,mae,rmse,mean_signed_error,median_absolute_error,p95_absolute_error,development_mae,development_rmse,mae_gap_test_minus_development,rmse_gap_test_minus_development
+cycle_aware_lstm,100,16.747903185000002,23.278104570062535,12.618459325000002,10.651689999999995,48.9542265,17.4595,25.0458,-0.7115968149999965,-1.767695429937465

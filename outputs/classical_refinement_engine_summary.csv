@@ -1,0 +1,5 @@
+model,feature_set,engines_improved,engines_worsened,engines_unchanged,mean_engine_mae,mean_engine_mae_improvement
+random_forest,temporal,0,0,20,22.876127957274193,0.0
+random_forest,temporal_cycle,12,8,0,23.507592445858176,-0.6314644885839902
+random_forest_depth12,temporal_cycle,12,8,0,23.39419243095785,-0.5180644736836584
+random_forest_leaf4,temporal_cycle,11,9,0,23.48105729049157,-0.6049293332173805

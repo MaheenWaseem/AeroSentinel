@@ -1,0 +1,130 @@
+{
+    "lock_metadata": {
+        "artifact_name": "locked_development_protocol",
+        "locked_at_utc": "2026-09-14T06:21:22.915121+00:00",
+        "development_phase_status": "closed",
+        "official_test_ground_truth_used": false,
+        "official_test_predictions_generated": false
+    },
+    "dataset": {
+        "name": "NASA C-MAPSS",
+        "subset": "FD001",
+        "training_engine_count": 100,
+        "official_test_engine_count": 100,
+        "target_definition": "uncapped_rul_equals_final_training_cycle_minus_current_cycle",
+        "rul_clipping": false
+    },
+    "development_protocol": {
+        "development_train_engines": 80,
+        "development_validation_engines": 20,
+        "engine_overlap": false,
+        "official_test_used_for_development": false
+    },
+    "sensor_protocol": {
+        "sensor_count": 14,
+        "sensor_order": [
+            "sensor_2",
+            "sensor_3",
+            "sensor_4",
+            "sensor_7",
+            "sensor_8",
+            "sensor_9",
+            "sensor_11",
+            "sensor_12",
+            "sensor_13",
+            "sensor_14",
+            "sensor_15",
+            "sensor_17",
+            "sensor_20",
+            "sensor_21"
+        ]
+    },
+    "sequence_protocol": {
+        "window_length": 30,
+        "stride": 1,
+        "padding": false,
+        "cross_engine_windows": false,
+        "future_information": false,
+        "sequence_target": "rul_at_final_cycle_of_sequence"
+    },
+    "selected_model": {
+        "name": "cycle_aware_lstm",
+        "input_size": 14,
+        "hidden_size": 64,
+        "num_layers": 1,
+        "batch_first": true,
+        "explicit_cycle_feature": true,
+        "cycle_feature_definition": "standardized_ending_cycle",
+        "regression_head": "Linear(hidden_size_plus_1, 1)"
+    },
+    "training_configuration": {
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "optimizer": "Adam",
+        "loss": "MSELoss",
+        "seed": 42,
+        "development_max_epochs": 20,
+        "selected_development_epoch": 18,
+        "final_training_epochs": 18,
+        "official_test_early_stopping": false
+    },
+    "preprocessing_protocol": {
+        "sensor_scaler": {
+            "type": "StandardScaler",
+            "fit_data_for_final_model": "all raw rows from all 100 NASA training engines, restricted to the locked 14 sensor columns",
+            "fit_before_sequence_construction": true,
+            "fit_on_official_test": false,
+            "train_test_normalized_independently": false
+        },
+        "cycle_scaler": {
+            "type": "StandardScaler",
+            "feature": "sequence_ending_cycle",
+            "fit_data_for_final_model": "ending-cycle values from the full-training sequence metadata",
+            "fit_on_official_test": false,
+            "train_test_normalized_independently": false
+        }
+    },
+    "development_model_selection_evidence": {
+        "selected_model": "cycle_aware_lstm",
+        "best_epoch": 18,
+        "validation_mae": 17.45954704284668,
+        "validation_rmse": 25.0458,
+        "reported_development_mae": 17.4595,
+        "mean_engine_mae": 16.8561,
+        "median_engine_mae": 16.3902,
+        "cycle_aware_beats_sensor_only_engines": 11,
+        "cycle_aware_beats_random_forest_engines": 13
+    },
+    "official_test_protocol": {
+        "primary_test_model": "cycle_aware_lstm",
+        "one_prediction_per_engine": true,
+        "use_final_30_observed_cycles": true,
+        "test_padding_allowed": false,
+        "change_window_length_for_test": false,
+        "fit_scalers_on_test": false,
+        "load_ground_truth_before_predictions": false,
+        "prediction_count_expected": 100
+    },
+    "official_test_metrics": {
+        "mandatory": [
+            "mae",
+            "rmse"
+        ],
+        "additional": [
+            "mean_signed_error",
+            "median_absolute_error",
+            "p95_absolute_error"
+        ],
+        "nasa_asymmetric_score": "optional_only_if_formula_and_sign_convention_are_verified"
+    },
+    "test_integrity_declaration": {
+        "model_selection_reopens_after_test": false,
+        "sensor_selection_changes_after_test": false,
+        "architecture_changes_after_test": false,
+        "hyperparameter_tuning_after_test": false,
+        "epoch_selection_after_test": false,
+        "preprocessing_changes_after_test": false,
+        "official_test_used_as_validation": false,
+        "statement": "No locked development decision will change in response to official-test performance."
+    }
+}

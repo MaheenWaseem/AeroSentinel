@@ -1,0 +1,68 @@
+# Python environments
+
+.venv/
+venv/
+env/
+
+# Python caches
+
+**pycache**/
+_.pyc
+_.pyo
+\*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Version control
+
+.git/
+.gitignore
+
+# IDE files
+
+.vscode/
+.idea/
+
+# Local environment files and secrets
+
+.env
+.env.\*
+_.pem
+_.key
+
+# Raw and processed datasets
+
+data/
+
+# Training and evaluation outputs
+
+outputs/
+reports/
+
+# Development notebooks
+
+notebooks/
+.ipynb_checkpoints/
+
+# Tests are not required inside the inference image
+
+tests/
+
+# Local temporary files
+
+_.log
+_.tmp
+\*.bak
+
+# Documentation
+
+README.md
+docs/
+
+# Previous model artifacts not required by production inference
+
+models/saved_artifacts/fd001_cycle_aware_lstm_best.pt
+models/saved_artifacts/fd001_cycle_feature_scaler.joblib
+models/saved_artifacts/fd001_lstm_best.pt
+models/saved_artifacts/fd001_sequence_sensor_scaler.joblib

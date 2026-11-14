@@ -1,0 +1,40 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local configuration and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+
+# Development environment
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Downloaded NASA datasets
+data/raw/
+data/processed/
+
+# Generated temporary outputs
+outputs/predictions/
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+docker_test_payload.json
